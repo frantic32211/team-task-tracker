@@ -1,17 +1,44 @@
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
 import User from "../../models/User.js";
+import Organization from "../../models/Organization.js";
+import { generateAccessToken, generateRefreshToken } from "./auth.utils.js";
+import { refreshAccessToken as refreshTokenService } from "./auth.service.js";
 
 export const register = async (req, res) => {
   try {
-    console.log(req.body);
-    const { full_name, email, password, role } = req.body;
+    const {
+      full_name,
+      email,
+      password,
+      role,
+      organization: orgName,
+    } = req.body;
 
     const existingUser = await User.findOne({ email });
 
     if (existingUser) {
       return res.status(400).json({
-        message: "User already exists",
+        status: 400,
+        code: "VALIDATION_ERROR",
+        message: "Email already exists",
+      });
+    }
+
+    if (!orgName) {
+      return res.status(400).json({
+        status: 400,
+        code: "VALIDATION_ERROR",
+        message: "Organization is required",
+      });
+    }
+
+    let organizationDoc = await Organization.findOne({
+      name: orgName,
+    });
+
+    if (!organizationDoc) {
+      organizationDoc = await Organization.create({
+        name: orgName,
       });
     }
 
@@ -22,7 +49,14 @@ export const register = async (req, res) => {
       email,
       password: hashedPassword,
       role,
+      organization: organizationDoc._id,
     });
+
+    const accessToken = generateAccessToken(user);
+
+    const refreshToken = generateRefreshToken(user);
+
+    await user.save();
 
     res.status(201).json({
       message: "User registered successfully",
@@ -32,9 +66,13 @@ export const register = async (req, res) => {
         email: user.email,
         role: user.role,
       },
+      accessToken,
+      refreshToken,
     });
   } catch (error) {
     res.status(500).json({
+      status: 500,
+      code: "SERVER_ERROR",
       message: error.message,
     });
   }
@@ -48,7 +86,9 @@ export const login = async (req, res) => {
 
     if (!user) {
       return res.status(401).json({
-        message: "User not registered.",
+        status: 401,
+        code: "AUTH_ERROR",
+        message: "Invalid credentials",
       });
     }
 
@@ -56,33 +96,67 @@ export const login = async (req, res) => {
 
     if (!isMatch) {
       return res.status(401).json({
+        status: 401,
+        code: "AUTH_ERROR",
         message: "Invalid credentials",
       });
     }
 
-    const token = jwt.sign(
-      {
-        userId: user._id,
-        role: user.role,
-      },
-      process.env.JWT_ACCESS_SECRET,
-      {
-        expiresIn: "1d",
-      },
-    );
+    const accessToken = generateAccessToken(user);
+
+    const refreshToken = generateRefreshToken(user);
+
+    await user.save();
 
     res.status(200).json({
-      token,
       user: {
         id: user._id,
         full_name: user.full_name,
         email: user.email,
         role: user.role,
       },
+      accessToken,
+      refreshToken,
     });
   } catch (error) {
     res.status(500).json({
+      status: 500,
+      code: "SERVER_ERROR",
       message: error.message,
     });
   }
+};
+
+export const refreshAccessToken = async (req, res) => {
+  try {
+    const tokens = await refreshTokenService(req.body.refreshToken);
+
+    return res.status(200).json(tokens);
+  } catch (error) {
+    return res.status(401).json({
+      status: 401,
+      code: "AUTH_ERROR",
+      message: error.message,
+    });
+  }
+};
+
+export const logout = async (req, res) => {
+  const user = await User.findById(req.user._id);
+
+  if (!user) {
+    return res.status(404).json({
+      status: 404,
+      code: "NOT_FOUND",
+      message: "User not found",
+    });
+  }
+
+  user.refreshToken = null;
+
+  await user.save();
+
+  res.status(200).json({
+    message: "Logged out",
+  });
 };

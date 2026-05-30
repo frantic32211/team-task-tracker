@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import Organization from "./Organization.js";
 
 const taskSchema = new mongoose.Schema(
   {
@@ -15,14 +16,14 @@ const taskSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["todo", "in-progress", "done"],
-      default: "todo",
+      enum: ["TODO", "IN_PROGRESS", "IN_REVIEW", "DONE", "BLOCKED"],
+      default: "TODO",
     },
 
     priority: {
       type: String,
-      enum: ["low", "medium", "high"],
-      default: "medium",
+      enum: ["LOW", "MEDIUM", "HIGH"],
+      default: "MEDIUM",
     },
 
     project: {
@@ -36,6 +37,18 @@ const taskSchema = new mongoose.Schema(
       ref: "User",
     },
 
+    organization: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Organization",
+      required: true,
+      index: true,
+    },
+
+    due_date: {
+      type: Date,
+      required: true,
+    },
+
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -44,8 +57,12 @@ const taskSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
+
+taskSchema.index({ status: 1 });
+taskSchema.index({ assignedTo: 1 });
+taskSchema.index({ due_date: 1 });
 
 const Task = mongoose.model("Task", taskSchema);
 

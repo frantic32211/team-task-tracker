@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import Organization from "./Organization.js";
 
 const userSchema = new mongoose.Schema(
   {
@@ -21,15 +22,25 @@ const userSchema = new mongoose.Schema(
       required: true,
     },
 
+    organization: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Organization",
+      required: true,
+    },
+
     role: {
       type: String,
       enum: ["admin", "manager", "member"],
       default: "member",
     },
+    refreshToken: {
+      type: String,
+      default: null,
+    },
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 const User = mongoose.model("User", userSchema);
