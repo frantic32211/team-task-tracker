@@ -1,5 +1,7 @@
 import Task from "../../models/Task.js";
 import Project from "../../models/Project.js";
+import { redis } from "../../config/redis.js";
+import { clearTaskCache } from "../../utils/clearTaskCache.js";
 
 export const createTask = async (req, res) => {
   try {
@@ -19,7 +21,17 @@ export const createTask = async (req, res) => {
       });
     }
 
-    if (new Date(due_date) <= new Date()) {
+    const dueDate = new Date(due_date);
+
+    if (Number.isNaN(dueDate.getTime())) {
+      return res.status(400).json({
+        status: 400,
+        code: "VALIDATION_ERROR",
+        message: "Invalid due_date",
+      });
+    }
+
+    if (dueDate <= new Date()) {
       return res.status(400).json({
         status: 400,
         code: "VALIDATION_ERROR",
@@ -38,6 +50,8 @@ export const createTask = async (req, res) => {
       createdBy: req.user._id,
     });
 
+    await clearTaskCache(req.user.organizationId);
+
     res.status(201).json({
       message: "Task created successfully",
       task,
@@ -53,6 +67,19 @@ export const createTask = async (req, res) => {
 
 export const getTasks = async (req, res) => {
   try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+
+    const skip = (page - 1) * limit;
+
+    const cacheKey = `tasks:${req.user.organizationId}:${req.user._id}:${page}:${limit}:${req.query.projectId || "all"}`;
+
+    const cachedData = await redis.get(cacheKey);
+
+    if (cachedData) {
+      return res.status(200).json(JSON.parse(cachedData));
+    }
+
     let filter = {
       organizationId: req.user.organizationId,
     };
@@ -65,11 +92,6 @@ export const getTasks = async (req, res) => {
       filter.project = req.query.projectId;
     }
 
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-
-    const skip = (page - 1) * limit;
-
     const tasks = await Task.find(filter)
       .populate("project", "project_name")
       .populate("assignedTo", "full_name email role")
@@ -80,13 +102,18 @@ export const getTasks = async (req, res) => {
 
     const total = await Task.countDocuments(filter);
 
-    return res.status(200).json({
+    const response = {
       page,
       limit,
       total,
       totalPages: Math.ceil(total / limit),
       tasks,
-    });
+    };
+
+    // cache for 60 sec
+    await redis.setex(cacheKey, 60, JSON.stringify(response));
+
+    return res.status(200).json(response);
   } catch (error) {
     return res.status(500).json({
       status: 500,
@@ -157,6 +184,8 @@ export const updateTaskStatus = async (req, res) => {
     task.status = newStatus;
     await task.save();
 
+    await clearTaskCache(req.user.organizationId);
+
     const updatedTask = await Task.findById(id)
       .populate("project", "project_name")
       .populate("assignedTo", "full_name email role");
@@ -178,7 +207,10 @@ export const deleteTask = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const task = await Task.findByIdAndDelete(id);
+    const task = await Task.findOneAndDelete({
+      _id: id,
+      organizationId: req.user.organizationId,
+    });
 
     if (!task) {
       return res.status(404).json({
@@ -187,6 +219,8 @@ export const deleteTask = async (req, res) => {
         message: "Task not found",
       });
     }
+
+    await clearTaskCache(req.user.organizationId);
 
     res.status(200).json({
       message: "Task deleted successfully",

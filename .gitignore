@@ -1,2 +1,30 @@
+# dependencies
 node_modules/
+
+# env
 .env
+.env.local
+
+# logs
+logs/
+*.log
+npm-debug.log*
+
+# build
+dist/
+build/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+
+# docker
+docker-data/
+*.pid
+
+# redis
+dump.rdb
+
+# coverage
+coverage/

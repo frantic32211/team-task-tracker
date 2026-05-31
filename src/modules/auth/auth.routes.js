@@ -1,6 +1,10 @@
 import express from "express";
-import { register, login, logout } from "./auth.controller.js";
-import { refreshAccessToken } from "./auth.service.js";
+import {
+  register,
+  login,
+  logout,
+  refreshAccessToken,
+} from "./auth.controller.js";
 
 const router = express.Router();
 

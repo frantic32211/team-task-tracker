@@ -48,6 +48,8 @@ export const register = async (req, res) => {
 
     const refreshToken = generateRefreshToken(user);
 
+    user.refreshToken = refreshToken;
+
     await user.save();
 
     res.status(201).json({
@@ -100,6 +102,8 @@ export const login = async (req, res) => {
 
     const refreshToken = generateRefreshToken(user);
 
+    user.refreshToken = refreshToken;
+
     await user.save();
 
     res.status(200).json({
@@ -129,7 +133,7 @@ export const refreshAccessToken = async (req, res) => {
   } catch (error) {
     return res.status(401).json({
       status: 401,
-      code: "AUTH_ERROR",
+      code: "INVALID_REFRESH_TOKEN",
       message: error.message,
     });
   }
