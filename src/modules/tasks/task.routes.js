@@ -13,7 +13,7 @@ const router = express.Router();
 router.post(
   "/",
   authMiddleware,
-  authorizeRoles("admin", "manager"),
+  authorizeRoles("ADMIN", "MANAGER"),
   createTask,
 );
 
@@ -22,7 +22,7 @@ router.patch("/:id/status", authMiddleware, updateTaskStatus);
 router.delete(
   "/:id",
   authMiddleware,
-  authorizeRoles("admin", "manager"),
+  authorizeRoles("ADMIN", "MANAGER"),
   deleteTask,
 );
 

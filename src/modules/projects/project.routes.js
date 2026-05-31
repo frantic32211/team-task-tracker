@@ -8,7 +8,7 @@ const router = express.Router();
 router.post(
   "/",
   authMiddleware,
-  authorizeRoles("admin", "manager"),
+  authorizeRoles("ADMIN", "MANAGER"),
   createProject,
 );
 

@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import Organization from "./Organization.js";
+import bcrypt from "bcryptjs";
 
 const userSchema = new mongoose.Schema(
   {
@@ -22,16 +22,18 @@ const userSchema = new mongoose.Schema(
       required: true,
     },
 
-    organization: {
+    organizationId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Organization",
-      required: true,
+      required: function () {
+        return this.role !== "SUPER_ADMIN";
+      },
     },
 
     role: {
       type: String,
-      enum: ["admin", "manager", "member"],
-      default: "member",
+      enum: ["SUPER_ADMIN", "ADMIN", "MANAGER", "MEMBER"],
+      default: "MEMBER",
     },
     refreshToken: {
       type: String,
@@ -42,6 +44,13 @@ const userSchema = new mongoose.Schema(
     timestamps: true,
   },
 );
+
+userSchema.pre("save", async function () {
+  if (!this.isModified("password")) return;
+
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+});
 
 const User = mongoose.model("User", userSchema);
 

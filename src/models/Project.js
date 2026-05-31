@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import Organization from "./Organization.js";
 
 const projectSchema = new mongoose.Schema(
   {
@@ -14,7 +13,7 @@ const projectSchema = new mongoose.Schema(
       trim: true,
     },
 
-    organization: {
+    organizationId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Organization",
       required: true,

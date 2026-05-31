@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import Organization from "./Organization.js";
 
 const taskSchema = new mongoose.Schema(
   {
@@ -37,7 +36,7 @@ const taskSchema = new mongoose.Schema(
       ref: "User",
     },
 
-    organization: {
+    organizationId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Organization",
       required: true,

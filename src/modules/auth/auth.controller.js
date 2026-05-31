@@ -6,13 +6,7 @@ import { refreshAccessToken as refreshTokenService } from "./auth.service.js";
 
 export const register = async (req, res) => {
   try {
-    const {
-      full_name,
-      email,
-      password,
-      role,
-      organization: orgName,
-    } = req.body;
+    const { full_name, email, password, role, organizationId } = req.body;
 
     const existingUser = await User.findOne({ email });
 
@@ -24,30 +18,28 @@ export const register = async (req, res) => {
       });
     }
 
-    if (!orgName) {
+    if (!organizationId) {
       return res.status(400).json({
         status: 400,
         code: "VALIDATION_ERROR",
-        message: "Organization is required",
+        message: "organizationId is required",
       });
     }
 
-    let organizationDoc = await Organization.findOne({
-      name: orgName,
-    });
+    const organizationDoc = await Organization.findById(organizationId);
 
     if (!organizationDoc) {
-      organizationDoc = await Organization.create({
-        name: orgName,
+      return res.status(404).json({
+        status: 404,
+        code: "NOT_FOUND",
+        message: "Organization not found",
       });
     }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await User.create({
       full_name,
       email,
-      password: hashedPassword,
+      password,
       role,
       organization: organizationDoc._id,
     });
@@ -65,6 +57,8 @@ export const register = async (req, res) => {
         full_name: user.full_name,
         email: user.email,
         role: user.role,
+        organization: organizationDoc.name,
+        organizationId: organizationDoc._id,
       },
       accessToken,
       refreshToken,

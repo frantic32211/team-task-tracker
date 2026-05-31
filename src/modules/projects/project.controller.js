@@ -29,7 +29,7 @@ export const getProjects = async (req, res) => {
   try {
     let filter = {};
 
-    if (req.user.role === "member") {
+    if (req.user.role === "MEMBER") {
       filter.members = req.user._id;
     }
     const projects = await Project.find(filter)
