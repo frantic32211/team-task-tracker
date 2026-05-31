@@ -3,12 +3,12 @@ import Project from "../../models/Project.js";
 
 export const createTask = async (req, res) => {
   try {
-    const { title, description, status, priority, project, assignedTo } =
+    const { title, description, priority, project, assignedTo, due_date } =
       req.body;
 
     const existingProject = await Project.findOne({
       _id: project,
-      organization: req.user.organization,
+      organizationId: req.user.organizationId,
     });
 
     if (!existingProject) {
@@ -19,14 +19,22 @@ export const createTask = async (req, res) => {
       });
     }
 
+    if (new Date(due_date) <= new Date()) {
+      return res.status(400).json({
+        status: 400,
+        code: "VALIDATION_ERROR",
+        message: "due_date must be in the future",
+      });
+    }
+
     const task = await Task.create({
       title,
       description,
-      status,
       priority,
       project,
       assignedTo,
-      organization: req.user.organization,
+      organizationId: req.user.organizationId,
+      due_date,
       createdBy: req.user._id,
     });
 
@@ -46,7 +54,7 @@ export const createTask = async (req, res) => {
 export const getTasks = async (req, res) => {
   try {
     let filter = {
-      organization: req.user.organization,
+      organizationId: req.user.organizationId,
     };
 
     if (req.user.role === "MEMBER") {
@@ -104,7 +112,7 @@ export const updateTaskStatus = async (req, res) => {
     }
 
     const sameOrg =
-      req.user.organization.toString() === task.organization.toString();
+      req.user.organizationId.toString() === task.organizationId.toString();
 
     if (!sameOrg) {
       return res.status(403).json({

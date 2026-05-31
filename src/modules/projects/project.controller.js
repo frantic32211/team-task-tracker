@@ -8,7 +8,7 @@ export const createProject = async (req, res) => {
       project_name,
       description,
       owner: req.user._id,
-      organization: req.user.organization,
+      organizationId: req.user.organizationId,
       members,
     });
 

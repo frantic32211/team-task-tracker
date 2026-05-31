@@ -2,7 +2,6 @@ import User from "../models/User.js";
 
 export const createSuperAdmin = async () => {
   try {
-    console.log("createSuperAdmin running");
     const existing = await User.findOne({ role: "SUPER_ADMIN" });
 
     if (existing) return;

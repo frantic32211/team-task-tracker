@@ -41,7 +41,7 @@ export const register = async (req, res) => {
       email,
       password,
       role,
-      organization: organizationDoc._id,
+      organizationId: organizationDoc._id,
     });
 
     const accessToken = generateAccessToken(user);
